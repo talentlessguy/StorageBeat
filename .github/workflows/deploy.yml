@@ -81,3 +81,24 @@ jobs:
           BLUMEN_PINATA_TOKEN: ${{ secrets.BLUMEN_PINATA_TOKEN }}
           BLUMEN_STORACHA_PROOF: ${{ secrets.BLUMEN_STORACHA_PROOF }}
           BLUMEN_STORACHA_TOKEN: ${{ secrets.BLUMEN_STORACHA_TOKEN }}
+  ens:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+       - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Install dependencies
+        run: cd www && deno install --allow-scripts
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.deno
+            ~/.cache/deno
+          key: ${{ runner.os }}-deno-${{ hashFiles('**/deps.ts') }}
+      - name: Send an ENS update tx proposal to Safe
+        run: deno -A npm:blumen ens ${{ needs.deploy.outputs.cid }} --safe ${{ vars.BLUMEN_ENS_SAFE }} --ens ${{ vars.BLUMEN_ENS_NAME }}
+        env:
+          BLUMEN_PK: ${{ secrets.BLUMEN_PROPOSER_PK }}
